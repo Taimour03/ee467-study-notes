@@ -1,0 +1,524 @@
+<!--
+  EE 467 STUDY SITE — PROGRESS LOG
+  Covered so far: slides 1-33 (Introduction, Erosion & Dilation, Opening & Closing, Hit-or-Miss Transform through the single-SE form).
+  To extend this file in a future session:
+    1. Add a new <section id="your-slug"> in <main>, following the existing section pattern
+       (eyebrow div, h2, prose, .card blocks, .formula blocks, .op-pair as needed).
+    2. Add a matching <li><a href="#your-slug">Section name</a></li> inside <nav class="toc"><ol>.
+    3. Update the "Covered so far" line above and the progress line in header.hero.
+    4. Leave earlier sections untouched unless content is being corrected.
+  Keep to the established tokens (--erode blue for shrink/removal, --dilate amber for grow/addition,
+  Fraunces for headings, Inter for body, IBM Plex Mono for formulas and set notation).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morphological Image Processing — Study Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFEEE6;
+    --panel:#FAFAF5;
+    --ink:#1D2521;
+    --ink-soft:#4B554F;
+    --line:#D7D5C7;
+    --erode:#2E5F8A;
+    --erode-soft:#DDE8F1;
+    --dilate:#B5651D;
+    --dilate-soft:#F3E3D2;
+    --accent:#6B7A5E;
+    --fg-pixel:#232B27;
+    --bg-pixel:#E3E1D4;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    line-height:1.6;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    color:var(--ink);
+    margin:0 0 .5rem;
+  }
+  h1{font-size:clamp(2rem,4vw,3rem); line-height:1.05;}
+  h2{font-size:1.6rem; letter-spacing:-.01em;}
+  h3{font-size:1.15rem; font-weight:600;}
+  p{margin:0 0 1rem; max-width:66ch;}
+  code, .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--ink);}
+
+  .layout{display:grid; grid-template-columns:230px 1fr; max-width:1180px; margin:0 auto;}
+  @media (max-width:880px){ .layout{grid-template-columns:1fr;} }
+
+  nav.toc{
+    position:sticky; top:0; align-self:start; height:100vh;
+    padding:2.5rem 1.25rem; overflow-y:auto;
+    border-right:1px solid var(--line);
+  }
+  @media (max-width:880px){
+    nav.toc{position:static; height:auto; border-right:none; border-bottom:1px solid var(--line); padding:1.5rem 1.25rem;}
+  }
+  nav.toc .brand{font-family:'Fraunces',serif; font-weight:600; font-size:1.05rem; margin-bottom:1.5rem; display:block;}
+  nav.toc .brand span{display:block; font-family:'Inter',sans-serif; font-weight:400; font-size:.78rem; color:var(--ink-soft); margin-top:2px;}
+  nav.toc ol{list-style:none; margin:0; padding:0; counter-reset:sec;}
+  nav.toc li{counter-increment:sec; margin-bottom:2px;}
+  nav.toc a{
+    display:flex; gap:.6rem; text-decoration:none; color:var(--ink-soft);
+    font-size:.92rem; padding:.4rem .5rem; border-radius:6px;
+  }
+  nav.toc a::before{content:counter(sec,decimal-leading-zero); font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--ink-soft); opacity:.6;}
+  nav.toc a:hover{background:var(--panel); color:var(--ink);}
+  nav.toc a.active{background:var(--panel); color:var(--ink); font-weight:500;}
+
+  main{padding:2.5rem 3rem 6rem; min-width:0;}
+  @media (max-width:880px){ main{padding:2rem 1.25rem 4rem;} }
+
+  header.hero{padding-bottom:2.5rem; border-bottom:1px solid var(--line); margin-bottom:2.5rem;}
+  header.hero .kicker{font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--ink-soft); margin-bottom:.75rem;}
+  header.hero p.lede{font-size:1.1rem; color:var(--ink-soft); max-width:56ch;}
+
+  section{margin-bottom:3.5rem; scroll-margin-top:1.5rem;}
+  section > .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--accent); margin-bottom:.4rem;}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:1.5rem 1.75rem; margin:1.25rem 0;
+  }
+
+  table{border-collapse:collapse; width:100%; font-size:.92rem; margin:1rem 0;}
+  th,td{text-align:left; padding:.55rem .75rem; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:.78rem; color:var(--ink-soft); text-transform:none;}
+  td .mono{font-size:.9rem;}
+
+  .formula{
+    font-family:'IBM Plex Mono',monospace; font-size:1.05rem;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:.9rem 1.1rem; margin:.9rem 0; overflow-x:auto;
+  }
+
+  .op-pair{display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;}
+  @media (max-width:640px){ .op-pair{grid-template-columns:1fr;} }
+  .op-card{border-radius:var(--radius); padding:1.25rem 1.4rem; border:1px solid var(--line);}
+  .op-card.erode{background:var(--erode-soft); border-color:#c3d5e6;}
+  .op-card.dilate{background:var(--dilate-soft); border-color:#e6cba9;}
+  .op-card h3{display:flex; align-items:center; gap:.5rem;}
+  .op-card .swatch{width:11px; height:11px; border-radius:2px; display:inline-block;}
+  .erode .swatch{background:var(--erode);}
+  .dilate .swatch{background:var(--dilate);}
+  .op-card ul{margin:.5rem 0 0; padding-left:1.1rem;}
+  .op-card li{margin-bottom:.25rem;}
+
+  /* interactive demo */
+  .demo{display:flex; flex-wrap:wrap; gap:2rem; align-items:flex-start;}
+  .demo-grid-wrap{flex:0 0 auto;}
+  #grid{display:grid; gap:2px; background:var(--line); padding:2px; border-radius:6px; border:1px solid var(--line);}
+  .cell{width:24px; height:24px; background:var(--bg-pixel); cursor:pointer;}
+  .cell.on{background:var(--fg-pixel);}
+  .cell.added{background:var(--dilate);}
+  .cell.removed{background:var(--erode); opacity:.55;}
+  .demo-controls{flex:1 1 240px; min-width:240px;}
+  .btn-row{display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem;}
+  button{
+    font-family:'Inter',sans-serif; font-size:.86rem; font-weight:500;
+    padding:.5rem .9rem; border-radius:7px; border:1px solid var(--line);
+    background:var(--panel); color:var(--ink); cursor:pointer;
+  }
+  button:hover{border-color:var(--ink-soft);}
+  button.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .demo-controls label{display:block; font-size:.82rem; color:var(--ink-soft); margin:.75rem 0 .35rem;}
+  select{
+    font-family:'Inter',sans-serif; font-size:.88rem; padding:.4rem .6rem;
+    border-radius:7px; border:1px solid var(--line); background:var(--panel); color:var(--ink);
+  }
+  .legend{display:flex; gap:1.1rem; margin-top:.9rem; font-size:.82rem; color:var(--ink-soft); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:.4rem;}
+  .legend i{width:11px; height:11px; border-radius:2px; display:inline-block;}
+  .legend .i-on{background:var(--fg-pixel);}
+  .legend .i-add{background:var(--dilate);}
+  .legend .i-rem{background:var(--erode);}
+  .hint{font-size:.82rem; color:var(--ink-soft); margin-top:.6rem;}
+
+  details.qa{
+    border:1px solid var(--line); border-radius:8px; padding:.75rem 1.1rem; margin-bottom:.6rem;
+    background:var(--panel);
+  }
+  details.qa summary{cursor:pointer; font-weight:500; font-size:.96rem; list-style:none;}
+  details.qa summary::-webkit-details-marker{display:none;}
+  details.qa summary::before{content:"+"; font-family:'IBM Plex Mono',monospace; margin-right:.6rem; color:var(--accent);}
+  details.qa[open] summary::before{content:"–";}
+  details.qa .answer{margin-top:.6rem; color:var(--ink-soft); font-size:.94rem;}
+
+  footer{padding:2rem 3rem 3rem; color:var(--ink-soft); font-size:.82rem; border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <nav class="toc">
+    <a class="brand" href="#top">Morphology<span>EE 467 · slides 1–33</span></a>
+    <ol>
+      <li><a href="#intro">Set foundations</a></li>
+      <li><a href="#erosion-dilation">Erosion &amp; dilation</a></li>
+      <li><a href="#lab">Interactive lab</a></li>
+      <li><a href="#opening-closing">Opening &amp; closing</a></li>
+      <li><a href="#hmt">Hit-or-miss transform</a></li>
+      <li><a href="#cheatsheet">Formula sheet</a></li>
+      <li><a href="#selfcheck">Self-check</a></li>
+    </ol>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="kicker">EE 467 — Computer Vision — Fall 2026 · covers slides 1–33 of 102</div>
+      <h1>Morphological image processing</h1>
+      <p class="lede">Study notes covering slides 1–33: set-theoretic foundations, erosion and dilation, opening and closing, and the hit-or-miss transform. Toggle pixels in the lab below to see the operations run on your own shape.</p>
+    </header>
+
+    <section id="intro">
+      <div class="eyebrow">01 — Foundations</div>
+      <h2>What morphology is doing</h2>
+      <p>Morphological processing treats an image as a <strong>set of pixels</strong> — foreground versus background — and probes it with a small set called a <strong>structuring element (SE)</strong>. The SE slides across the image; at each position a logical test decides the output pixel. Different SEs surface different structures.</p>
+
+      <div class="card">
+        <h3>Three operations on sets</h3>
+        <table>
+          <tr><th>Operation</th><th>Meaning</th><th>Formula</th></tr>
+          <tr><td>Reflection</td><td>Rotate SE 180° about its origin</td><td class="mono">B̂ = {w | w = −b, b ∈ B}</td></tr>
+          <tr><td>Translation</td><td>Shift a set by z</td><td class="mono">(B)ᵤ = {c | c = b+z, b ∈ B}</td></tr>
+          <tr><td>Complement</td><td>Everything not in A (i.e. the background)</td><td class="mono">Aᶜ = {z | z ∉ A}</td></tr>
+        </table>
+      </div>
+
+      <p>The general recipe: start with an all-background output image, slide the SE over the input, and at each position write a foreground or background pixel at the SE's origin based on a logical test between the SE and the pixels underneath it. This is structurally the same shape as convolution — except the operation is a set comparison, not a weighted sum.</p>
+    </section>
+
+    <section id="erosion-dilation">
+      <div class="eyebrow">02 — The two primitives</div>
+      <h2>Erosion and dilation</h2>
+      <p>Every other morphological operation is built from these two.</p>
+
+      <div class="op-pair">
+        <div class="op-card erode">
+          <h3><span class="swatch"></span>Erosion</h3>
+          <div class="formula">A ⊖ B = {z | (B)ᵤ ⊆ A}</div>
+          <p style="margin-bottom:.4rem;">Keeps a position only if the <em>entire</em> SE fits inside the foreground.</p>
+          <ul>
+            <li>Shrinks foreground regions</li>
+            <li>Removes thin protrusions and small specks</li>
+            <li>No reflection of B needed</li>
+          </ul>
+        </div>
+        <div class="op-card dilate">
+          <h3><span class="swatch"></span>Dilation</h3>
+          <div class="formula">A ⊕ B = {z | (B̂)ᵤ ∩ A ≠ ∅}</div>
+          <p style="margin-bottom:.4rem;">Keeps a position if the reflected SE overlaps the foreground by even <em>one</em> pixel.</p>
+          <ul>
+            <li>Grows foreground regions</li>
+            <li>Fills small gaps and breaks</li>
+            <li>Uses the reflected SE, B̂</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Duality</h3>
+        <p style="margin-bottom:.5rem;">Erosion and dilation are complements of each other:</p>
+        <div class="formula">(A ⊖ B)ᶜ = Aᶜ ⊕ B̂&#10;(A ⊕ B)ᶜ = Aᶜ ⊖ B̂</div>
+        <p style="margin-bottom:0;">Eroding the foreground is the same as dilating the background, and vice versa. This is most useful when the SE is symmetric (B = B̂), since the reflection can be dropped.</p>
+      </div>
+    </section>
+
+    <section id="lab">
+      <div class="eyebrow">03 — Try it yourself</div>
+      <h2>Interactive lab</h2>
+      <p>Click cells to draw your own shape (or start from the preset), pick a structuring element, then run an operation. Blue marks pixels erosion removes; amber marks pixels dilation adds.</p>
+
+      <div class="card demo">
+        <div class="demo-grid-wrap">
+          <div id="grid"></div>
+          <div class="legend">
+            <span><i class="i-on"></i>foreground</span>
+            <span><i class="i-add"></i>added (dilate)</span>
+            <span><i class="i-rem"></i>removed (erode)</span>
+          </div>
+        </div>
+        <div class="demo-controls">
+          <label>Structuring element</label>
+          <select id="se-select">
+            <option value="square3">3×3 square</option>
+            <option value="cross3">3×3 cross</option>
+            <option value="hline3">1×3 horizontal line</option>
+            <option value="vline3">3×1 vertical line</option>
+          </select>
+
+          <label>Operation</label>
+          <div class="btn-row">
+            <button data-op="erode">Erosion</button>
+            <button data-op="dilate">Dilation</button>
+            <button data-op="open">Opening</button>
+            <button data-op="close">Closing</button>
+          </div>
+
+          <div class="btn-row">
+            <button id="reset-preset">Reset to preset</button>
+            <button id="reset-blank">Clear grid</button>
+          </div>
+          <p class="hint">Opening = erode then dilate (breaks thin bridges, smooths bumps). Closing = dilate then erode (fills small gaps and notches).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="opening-closing">
+      <div class="eyebrow">04 — Compound operations</div>
+      <h2>Opening and closing</h2>
+
+      <div class="op-pair">
+        <div class="op-card erode">
+          <h3><span class="swatch"></span>Opening</h3>
+          <div class="formula">A ∘ B = (A ⊖ B) ⊕ B</div>
+          <ul>
+            <li>Smooths contours</li>
+            <li>Breaks narrow isthmuses</li>
+            <li>Eliminates thin protrusions</li>
+          </ul>
+          <p style="margin-bottom:0;"><strong>Geometric view:</strong> the union of every position where B fits fully inside A — roll the SE around inside the shape.</p>
+        </div>
+        <div class="op-card dilate">
+          <h3><span class="swatch"></span>Closing</h3>
+          <div class="formula">A ● B = (A ⊕ B) ⊖ B</div>
+          <ul>
+            <li>Smooths contours</li>
+            <li>Fuses narrow breaks</li>
+            <li>Fills small holes and gaps</li>
+          </ul>
+          <p style="margin-bottom:0;"><strong>Geometric view:</strong> the complement of every SE position that misses A entirely — seals off gaps from the outside.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Worked case: fingerprint cleanup</h3>
+        <p style="margin-bottom:0;">A noisy fingerprint has both salt (stray foreground specks) and pepper (stray background gaps) noise. Erosion alone removes salt but thins the ridges; dilation alone restores ridges but leaves pepper noise. <strong>Closing</strong> (dilate, then erode) cleans up most of the pepper noise while limiting ridge distortion — this is why the compound operations, not the raw primitives, get used for denoising.</p>
+      </div>
+    </section>
+
+    <section id="hmt">
+      <div class="eyebrow">05 — Shape detection</div>
+      <h2>Hit-or-miss transform</h2>
+      <p>Erosion alone only checks the foreground, which isn't enough to pin down a specific shape — a larger object containing that shape would match too. The hit-or-miss transform (HMT) also checks the surrounding background.</p>
+
+      <div class="card">
+        <h3>Two-SE form</h3>
+        <p style="margin-bottom:.5rem;">Define <span class="mono">B₁</span> to match the foreground and <span class="mono">B₂</span> to match the background around it:</p>
+        <div class="formula">I ⊛ B₁,₂ = (A ⊖ B₁) ∩ (Aᶜ ⊖ B₂)</div>
+        <p style="margin-bottom:0;">Erode A by B₁, erode Aᶜ by B₂, and intersect the results. Only positions where <em>both</em> conditions hold survive — the object's exact location.</p>
+      </div>
+
+      <div class="card">
+        <h3>Single-SE form (slide 33)</h3>
+        <p style="margin-bottom:.5rem;">Instead of two separate SEs and erosions, let one SE carry foreground, background, and don't-care values, and apply it directly to the image rather than just the foreground set:</p>
+        <div class="formula">I ⊛ B = {z | (B)ᵤ ⊆ I}</div>
+        <p style="margin-bottom:0;">A single erosion-like pass now checks both constraints at once — the SE itself encodes what must be foreground <em>and</em> what must be background.</p>
+      </div>
+    </section>
+
+    <section id="cheatsheet">
+      <div class="eyebrow">06 — Reference</div>
+      <h2>Formula sheet</h2>
+      <div class="card">
+        <table>
+          <tr><th>Operation</th><th>Formula</th></tr>
+          <tr><td>Reflection</td><td class="mono">B̂ = {w | w = −b, b ∈ B}</td></tr>
+          <tr><td>Translation</td><td class="mono">(B)ᵤ = {c | c = b+z, b ∈ B}</td></tr>
+          <tr><td>Complement</td><td class="mono">Aᶜ = {z | z ∉ A}</td></tr>
+          <tr><td>Erosion</td><td class="mono">A ⊖ B = {z | (B)ᵤ ⊆ A}</td></tr>
+          <tr><td>Dilation</td><td class="mono">A ⊕ B = {z | (B̂)ᵤ ∩ A ≠ ∅}</td></tr>
+          <tr><td>Duality (erosion)</td><td class="mono">(A ⊖ B)ᶜ = Aᶜ ⊕ B̂</td></tr>
+          <tr><td>Duality (dilation)</td><td class="mono">(A ⊕ B)ᶜ = Aᶜ ⊖ B̂</td></tr>
+          <tr><td>Opening</td><td class="mono">A ∘ B = (A ⊖ B) ⊕ B</td></tr>
+          <tr><td>Closing</td><td class="mono">A ● B = (A ⊕ B) ⊖ B</td></tr>
+          <tr><td>Hit-or-miss (2 SE)</td><td class="mono">(A ⊖ B₁) ∩ (Aᶜ ⊖ B₂)</td></tr>
+          <tr><td>Hit-or-miss (1 SE)</td><td class="mono">{z | (B)ᵤ ⊆ I}</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="selfcheck">
+      <div class="eyebrow">07 — Test yourself</div>
+      <h2>Self-check</h2>
+
+      <details class="qa">
+        <summary>Why does dilation use the reflected SE, B̂, while erosion doesn't?</summary>
+        <p class="answer">Dilation is defined as the dual of erosion under complement — reflecting the SE keeps the duality identities consistent. For symmetric SEs (B = B̂), the distinction disappears in practice.</p>
+      </details>
+      <details class="qa">
+        <summary>What happens to a thin protrusion under opening versus closing?</summary>
+        <p class="answer">Opening removes it (the SE can't fit inside the thin part, so erosion wipes it out and dilation can't bring back what's gone). Closing leaves it untouched or even connects it more firmly, since closing targets gaps, not protrusions.</p>
+      </details>
+      <details class="qa">
+        <summary>Why does closing help with "pepper" noise but not "salt" noise?</summary>
+        <p class="answer">Closing dilates first, which fills in small background dropouts (pepper) surrounded by foreground; the following erosion then restores the original boundary size. Salt noise (stray foreground specks) needs erosion first — that's what opening does.</p>
+      </details>
+      <details class="qa">
+        <summary>Why is checking only the foreground (plain erosion) insufficient for locating a specific shape?</summary>
+        <p class="answer">A larger object that happens to contain the target shape's foreground pattern would also survive the erosion test. Without also checking that the surrounding background matches, you can't distinguish the shape from something bigger that merely contains it.</p>
+      </details>
+      <details class="qa">
+        <summary>How does a single 3-valued SE replace the two-SE hit-or-miss transform?</summary>
+        <p class="answer">The SE is allowed to specify foreground, background, and don't-care positions all at once, and it's applied directly to the whole image (not just the foreground set). One containment check per position then verifies both the foreground match and the background match simultaneously, replacing the two separate erosions and their intersection.</p>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer>Compiled from EE 467 Morphological Image Processing lecture slides (B. Berscheid, Fall 2026), slides 1–33. For personal study use.</footer>
+
+<script>
+const ROWS = 10, COLS = 14;
+const preset = [
+"00000000000000",
+"00011111000000",
+"00011111100000",
+"00011111100000",
+"00011111100000",
+"00000001100000",
+"00000001111000",
+"00000000001100",
+"00000000000000",
+"00000000000000"
+].map(r => r.split('').map(Number));
+
+let state = preset.map(r => r.slice());
+
+const SEs = {
+  square3: [[-1,-1],[-1,0],[-1,1],[0,-1],[0,0],[0,1],[1,-1],[1,0],[1,1]],
+  cross3: [[-1,0],[0,-1],[0,0],[0,1],[1,0]],
+  hline3: [[0,-1],[0,0],[0,1]],
+  vline3: [[-1,0],[0,0],[1,0]]
+};
+
+const gridEl = document.getElementById('grid');
+gridEl.style.gridTemplateColumns = `repeat(${COLS}, 24px)`;
+
+function get(g, r, c){
+  if(r<0||r>=ROWS||c<0||c>=COLS) return 0;
+  return g[r][c];
+}
+
+function erode(g, se){
+  const out = [];
+  for(let r=0;r<ROWS;r++){
+    out.push([]);
+    for(let c=0;c<COLS;c++){
+      let ok = true;
+      for(const [dr,dc] of se){ if(get(g,r+dr,c+dc)!==1){ ok=false; break; } }
+      out[r].push(ok?1:0);
+    }
+  }
+  return out;
+}
+function dilate(g, se){
+  const out = [];
+  for(let r=0;r<ROWS;r++){
+    out.push([]);
+    for(let c=0;c<COLS;c++){
+      let hit = false;
+      for(const [dr,dc] of se){ if(get(g,r-dr,c-dc)===1){ hit=true; break; } }
+      out[r].push(hit?1:0);
+    }
+  }
+  return out;
+}
+
+let renderedResult = null;
+
+function render(base, result){
+  gridEl.innerHTML = '';
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const baseVal = base[r][c];
+      const resVal = result ? result[r][c] : baseVal;
+      if(!result){
+        if(baseVal) cell.classList.add('on');
+      } else {
+        if(baseVal===1 && resVal===0) cell.classList.add('removed');
+        else if(baseVal===0 && resVal===1) cell.classList.add('added');
+        else if(resVal===1) cell.classList.add('on');
+      }
+      cell.addEventListener('click', () => {
+        state[r][c] = state[r][c] ? 0 : 1;
+        renderedResult = null;
+        document.querySelectorAll('button[data-op]').forEach(b=>b.classList.remove('active'));
+        render(state, null);
+      });
+      gridEl.appendChild(cell);
+    }
+  }
+}
+
+function currentSE(){
+  return SEs[document.getElementById('se-select').value];
+}
+
+function runOp(op){
+  const se = currentSE();
+  let result;
+  if(op==='erode') result = erode(state, se);
+  else if(op==='dilate') result = dilate(state, se);
+  else if(op==='open') result = dilate(erode(state, se), se);
+  else if(op==='close') result = erode(dilate(state, se), se);
+  render(state, result);
+}
+
+document.querySelectorAll('button[data-op]').forEach(btn=>{
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('button[data-op]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    runOp(btn.dataset.op);
+  });
+});
+document.getElementById('se-select').addEventListener('change', () => {
+  const active = document.querySelector('button[data-op].active');
+  if(active) runOp(active.dataset.op);
+});
+document.getElementById('reset-preset').addEventListener('click', () => {
+  state = preset.map(r=>r.slice());
+  document.querySelectorAll('button[data-op]').forEach(b=>b.classList.remove('active'));
+  render(state, null);
+});
+document.getElementById('reset-blank').addEventListener('click', () => {
+  state = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  document.querySelectorAll('button[data-op]').forEach(b=>b.classList.remove('active'));
+  render(state, null);
+});
+
+render(state, null);
+
+const navLinks = document.querySelectorAll('nav.toc a');
+const sections = [...navLinks].map(a => document.querySelector(a.getAttribute('href')));
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    const link = document.querySelector(`nav.toc a[href="#${entry.target.id}"]`);
+    if(!link) return;
+    if(entry.isIntersecting) {
+      navLinks.forEach(l=>l.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+}, {rootMargin: '-20% 0px -70% 0px'});
+sections.forEach(s => s && observer.observe(s));
+</script>
+</body>
+</html>
