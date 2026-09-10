@@ -3,6 +3,8 @@
 A single self-contained `index.html` — no build step, no dependencies to install.
 Currently covers slides 1–33 of the "Morphological Image Processing" deck.
 
+**Live site:** https://taimour03.github.io/ee467-study-notes/
+
 ## One-time setup (GitHub Pages)
 
 1. Go to https://github.com/new and create a repository (e.g. `ee467-study-notes`). Public repos get free Pages hosting; private works too if you have GitHub Pro/Team/Edu.
@@ -10,8 +12,7 @@ Currently covers slides 1–33 of the "Morphological Image Processing" deck.
 3. Go to **Settings → Pages** in the repo.
 4. Under **Build and deployment → Source**, choose **Deploy from a branch**.
 5. Under **Branch**, choose `main` and folder `/ (root)`, then **Save**.
-6. Wait a minute or two, then your site is live at:
-   `https://<your-username>.github.io/<repo-name>/`
+6. Wait a minute or two, then your site is live at the link above.
 
 ## Updating it as you go through the course
 
@@ -22,8 +23,8 @@ Go to the file in your repo → pencil icon (Edit) → paste in the updated `ind
 
 **B — via git, if you have it set up locally:**
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/Taimour03/ee467-study-notes.git
+cd ee467-study-notes
 # replace index.html with the updated version
 git add index.html
 git commit -m "Add slides 34-45"
